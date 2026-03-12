@@ -10,4 +10,4 @@ OUTPUT_DIR = "project_results"
 CLEAN_DIR = os.path.join(OUTPUT_DIR, "cleaned_data")
 
 os.makedirs(OUTPUT_DIR, exist_ok=True)
-os.makedirs(CLEAN_DIR, exist_ok=True)
+os.makedirs(CLEAN_DIR, exist_ok=True) 
