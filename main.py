@@ -56,7 +56,14 @@ def create_features(df, horizon_steps):
 
     data["lag_1"] = data["load_kw"].shift(1)  
     data["lag_6"] = data["load_kw"].shift(6)     
-    
+    data["lag_18"] = data["load_kw"].shift(18) 
+    data["lag_36"] = data["load_kw"].shift(36)   
+    data["lag_144"] = data["load_kw"].shift(144) 
+
+    data["roll_mean_6"] = data["load_kw"].rolling(6).mean()
+    data["roll_mean_18"] = data["load_kw"].rolling(18).mean()
+    data["roll_mean_144"] = data["load_kw"].rolling(144).mean()
+
     data["target"] = data["load_kw"].shift(-horizon_steps)
     data = data.dropna()
     return data
