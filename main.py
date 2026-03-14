@@ -46,3 +46,17 @@ def evaluate_forecast(y_true, y_pred):
     rmse = sqrt(mean_squared_error(y_true, y_pred))
     return mae, rmse
 
+def create_features(df, horizon_steps):
+    data = df.copy()
+    data["hour"] = data.index.hour
+    data["dayofweek"] = data.index.dayofweek
+    data["month"] = data.index.month
+    data["dayofmonth"] = data.index.day
+    data["weekend"] = (data.index.dayofweek >= 5).astype(int)
+
+    data["lag_1"] = data["load_kw"].shift(1)  
+    data["lag_6"] = data["load_kw"].shift(6)     
+    
+    data["target"] = data["load_kw"].shift(-horizon_steps)
+    data = data.dropna()
+    return data
