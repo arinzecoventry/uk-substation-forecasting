@@ -87,13 +87,18 @@ def run_arima(train, test, horizon_steps):
 def find_best_arima_order(train_series):
     best_aic = np.inf
     best_order = None
-    
-    for p in [0, 1, 2]:
+    best_model = None
+
+    for p in [0, 1, 2, 3]:
         for d in [0, 1]:
-            for q in [0, 1, 2]:
-                model = ARIMA(train_series, order=(p, d, q))
-                fitted = model.fit()
-                if fitted.aic < best_aic:
-                    best_aic = fitted.aic
-                    best_order = (p, d, q)
-    return best_order
+            for q in [0, 1, 2, 3]:
+                try:
+                    model = ARIMA(train_series, order=(p, d, q))
+                    fitted = model.fit()
+                    if fitted.aic < best_aic:
+                        best_aic = fitted.aic
+                        best_order = (p, d, q)
+                        best_model = fitted
+                except:
+                    continue
+    return best_order, best_model
