@@ -83,3 +83,17 @@ def run_arima(train, test, horizon_steps):
         history.append(test["load_kw"].iloc[i])
         
     return np.array(predictions), (1, 1, 1)
+
+def find_best_arima_order(train_series):
+    best_aic = np.inf
+    best_order = None
+    
+    for p in [0, 1, 2]:
+        for d in [0, 1]:
+            for q in [0, 1, 2]:
+                model = ARIMA(train_series, order=(p, d, q))
+                fitted = model.fit()
+                if fitted.aic < best_aic:
+                    best_aic = fitted.aic
+                    best_order = (p, d, q)
+    return best_order
