@@ -2,6 +2,7 @@ import os
 import pandas as pd
 import numpy as np
 from math import sqrt
+from statsmodels.tsa.arima.model import ARIMA
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 
 DATASETS = {
@@ -67,3 +68,18 @@ def create_features(df, horizon_steps):
     data["target"] = data["load_kw"].shift(-horizon_steps)
     data = data.dropna()
     return data
+
+def run_arima(train, test, horizon_steps):
+    train_series = train["load_kw"]
+    # Hardcoding order for now to test the loop
+    history = list(train_series.values)
+    predictions = []
+    
+    for i in range(len(test)):
+        model = ARIMA(history, order=(1, 1, 1))
+        fitted_model = model.fit()
+        yhat = fitted_model.forecast(steps=horizon_steps)[-1]
+        predictions.append(yhat)
+        history.append(test["load_kw"].iloc[i])
+        
+    return np.array(predictions), (1, 1, 1)
