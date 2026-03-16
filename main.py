@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 from math import sqrt
 from statsmodels.tsa.arima.model import ARIMA
+from xgboost import XGBRegressor
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 
 DATASETS = {
@@ -16,6 +17,9 @@ CLEAN_DIR = os.path.join(OUTPUT_DIR, "cleaned_data")
 
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 os.makedirs(CLEAN_DIR, exist_ok=True)
+
+PLOT_DIR = os.path.join(OUTPUT_DIR, "plots")
+os.makedirs(PLOT_DIR, exist_ok=True)
 
 def load_and_clean_substation(file_path, dataset_name):
     df = pd.read_csv(file_path)
@@ -102,3 +106,44 @@ def find_best_arima_order(train_series):
                 except:
                     continue
     return best_order, best_model
+
+
+def save_forecast_plot(y_true, y_pred, title, save_path):
+    plt.figure(figsize=(12, 5))
+    plt.plot(y_true[:200], label="Actual")
+    plt.plot(y_pred[:200], label="Predicted")
+    plt.title(title)
+    plt.xlabel("Time Step")
+    plt.ylabel("Load (kW)")
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(save_path, dpi=300)
+    plt.close()
+
+
+def run_xgboost(train, val, test):
+    features = [
+        "lag_1", "lag_6", "lag_18", "lag_36", "lag_144",
+        "roll_mean_6", "roll_mean_18", "roll_mean_144",
+        "hour", "dayofweek", "month", "dayofmonth", "weekend"
+    ]
+
+    X_train = train[features]
+    y_train = train["target"]
+    X_val = val[features]
+    y_val = val["target"]
+    X_test = test[features]
+
+    model = XGBRegressor(
+        n_estimators=300,
+        learning_rate=0.05,
+        max_depth=6,
+        subsample=0.8,
+        colsample_bytree=0.8,
+        objective="reg:squarederror",
+        random_state=42
+    )
+
+    model.fit(X_train, y_train, eval_set=[(X_val, y_val)], verbose=False)
+    preds = model.predict(X_test)
+    return preds, model
