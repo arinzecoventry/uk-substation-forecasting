@@ -147,3 +147,23 @@ def run_xgboost(train, val, test):
     model.fit(X_train, y_train, eval_set=[(X_val, y_val)], verbose=False)
     preds = model.predict(X_test)
     return preds, model
+
+def main():
+    all_results = []
+    horizons = {"10min": 1, "1hour": 6, "6hour": 36, "24hour": 144}
+
+    for dataset_name, file_path in DATASETS.items():
+        clean_series = load_and_clean_substation(file_path, dataset_name)
+
+        for horizon_name, horizon_steps in horizons.items():
+            feature_data = create_features(clean_series, horizon_steps)
+            train, val, test = train_test_split_time_series(feature_data)
+            y_test = test["target"].values
+
+            # Run ARIMA
+            arima_pred, _ = run_arima(train, test, horizon_steps)
+            # Run XGBoost
+            xgb_pred, _ = run_xgboost(train, val, test)
+            
+            # Save plots and log basic metrics
+            print(f"Completed {dataset_name} for {horizon_name}")
