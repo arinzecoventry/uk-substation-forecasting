@@ -4,7 +4,11 @@ import numpy as np
 from math import sqrt
 from statsmodels.tsa.arima.model import ARIMA
 from xgboost import XGBRegressor
+from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics import mean_absolute_error, mean_squared_error
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import LSTM, Dense
+from tensorflow.keras.callbacks import EarlyStopping
 
 DATASETS = {
     "511285_Oakwood_Rd_Llanedeyrn": "511285.csv",
@@ -152,6 +156,23 @@ def main():
     all_results = []
     horizons = {"10min": 1, "1hour": 6, "6hour": 36, "24hour": 144}
 
+    lstm_y_test, lstm_pred, _ = run_lstm(
+                clean_series,
+                horizon_steps=horizon_steps
+            )
+            
+    lstm_mae, lstm_rmse, lstm_mape = evaluate_forecast(lstm_y_test, lstm_pred)
+    
+    all_results.append({
+        "Dataset": dataset_name,
+        "Horizon": horizon_name,
+        "Model": "LSTM",
+        "MAE": lstm_mae,
+        "RMSE": lstm_rmse,
+        "MAPE": lstm_mape,
+        "Extra": ""
+    })
+
     for dataset_name, file_path in DATASETS.items():
         clean_series = load_and_clean_substation(file_path, dataset_name)
 
@@ -167,3 +188,59 @@ def main():
             
             # Save plots and log basic metrics
             print(f"Completed {dataset_name} for {horizon_name}")
+
+
+def create_lstm_sequences(series, seq_length, horizon_steps):
+    X, y = [], []
+    values = series.values
+    for i in range(len(values) - seq_length - horizon_steps):
+        X.append(values[i:i+seq_length])
+        y.append(values[i+seq_length+horizon_steps-1])
+    return np.array(X), np.array(y)
+
+
+def run_lstm(full_series, train_ratio=0.7, val_ratio=0.15, seq_length=36, horizon_steps=1):
+    scaler = MinMaxScaler()
+    scaled = scaler.fit_transform(full_series[["load_kw"]])
+    scaled_df = pd.DataFrame(scaled, index=full_series.index, columns=["load_kw"])
+    
+    X, y = create_lstm_sequences(scaled_df["load_kw"], seq_length, horizon_steps)
+    
+    model = Sequential()
+    model.add(LSTM(64, input_shape=(seq_length, 1)))
+    model.add(Dense(32, activation="relu"))
+    model.add(Dense(1))
+    model.compile(optimizer="adam", loss="mse")
+
+    n = len(X)
+    train_end = int(n * train_ratio)
+    val_end = int(n * (train_ratio + val_ratio))
+    
+    X_train, y_train = X[:train_end], y[:train_end]
+    X_val, y_val = X[train_end:val_end], y[train_end:val_end]
+    
+    early_stop = EarlyStopping(monitor="val_loss", patience=5, restore_best_weights=True)
+    
+    model.fit(
+        X_train, y_train,
+        validation_data=(X_val, y_val),
+        epochs=30,
+        batch_size=32,
+        callbacks=[early_stop],
+        verbose=0
+    )
+    
+    X_train = X_train.reshape((X_train.shape[0], X_train.shape[1], 1))
+    X_val = X_val.reshape((X_val.shape[0], X_val.shape[1], 1))
+    X_test = X[val_end:].reshape((X[val_end:].shape[0], X[val_end:].shape[1], 1))
+    y_test = y[val_end:]
+
+    pred_scaled = model.predict(X_test, verbose=0)
+    
+    y_test_actual = scaler.inverse_transform(y_test.reshape(-1, 1)).flatten()
+    pred_actual = scaler.inverse_transform(pred_scaled).flatten()
+    
+    return y_test_actual, pred_actual, model
+
+
+
