@@ -259,4 +259,15 @@ def diebold_mariano_test(y_true, pred1, pred2, h=1, power=2):
     gamma0 = autocovariance(d, 0)
     dm_stat = mean_d / np.sqrt(gamma0 / n)
     p_value = 2 * (1 - t.cdf(np.abs(dm_stat), df=n - 1))
+    
+    variance_d = autocovariance(d, 0)
+    for lag in range(1, h):
+        gamma = autocovariance(d, lag)
+        variance_d += 2 * gamma
+
+    dm_stat = mean_d / np.sqrt(variance_d / n)
+    harvey_adj = np.sqrt((n + 1 - 2*h + (h*(h-1)/n)) / n)
+    dm_stat *= harvey_adj
+
+    p_value = 2 * (1 - t.cdf(np.abs(dm_stat), df=n - 1))
     return dm_stat, p_value
