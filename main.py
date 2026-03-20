@@ -244,3 +244,19 @@ def run_lstm(full_series, train_ratio=0.7, val_ratio=0.15, seq_length=36, horizo
 
 
 
+def diebold_mariano_test(y_true, pred1, pred2, h=1, power=2):
+    y_true, pred1, pred2 = np.array(y_true), np.array(pred1), np.array(pred2)
+    e1, e2 = y_true - pred1, y_true - pred2
+    d = (e1**2) - (e2**2) if power==2 else np.abs(e1)-np.abs(e2)
+    
+    mean_d = np.mean(d)
+    n = len(d)
+    
+    def autocovariance(x, lag):
+        x_mean = np.mean(x)
+        return np.sum((x[:n-lag] - x_mean) * (x[lag:] - x_mean)) / n
+
+    gamma0 = autocovariance(d, 0)
+    dm_stat = mean_d / np.sqrt(gamma0 / n)
+    p_value = 2 * (1 - t.cdf(np.abs(dm_stat), df=n - 1))
+    return dm_stat, p_value
