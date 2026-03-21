@@ -16,6 +16,13 @@ DATASETS = {
     "511469_Heol_Briwnant_South_Llanishen": "511469.csv"
 }
 
+horizons = {
+    "10min": 1,
+    "1hour": 6,
+    "6hour": 36,
+    "24hour": 144
+}
+
 OUTPUT_DIR = "project_results"
 CLEAN_DIR = os.path.join(OUTPUT_DIR, "cleaned_data")
 
@@ -154,6 +161,7 @@ def run_xgboost(train, val, test):
 
 def main():
     all_results = []
+    dm_results = []
     horizons = {"10min": 1, "1hour": 6, "6hour": 36, "24hour": 144}
 
     lstm_y_test, lstm_pred, _ = run_lstm(
@@ -198,6 +206,12 @@ def main():
             
             # Save plots and log basic metrics
             print(f"Completed {dataset_name} for {horizon_name}")
+
+    results_df = pd.DataFrame(all_results)
+    dm_df = pd.DataFrame(dm_results)
+
+    results_df.to_csv(os.path.join(OUTPUT_DIR, "model_results.csv"), index=False)
+    dm_df.to_csv(os.path.join(OUTPUT_DIR, "dm_test_results.csv"), index=False)
 
 
 def create_lstm_sequences(series, seq_length, horizon_steps):
