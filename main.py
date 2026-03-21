@@ -173,6 +173,16 @@ def main():
         "Extra": ""
     })
 
+    min_len = min(len(y_test), len(arima_pred), len(xgb_pred), len(lstm_y_test), len(lstm_pred))
+            
+    # Aligning all arrays to the same length for DM test
+    y_dm = y_test[-min_len:]
+    arima_dm = arima_pred[-min_len:]
+    xgb_dm = xgb_pred[-min_len:]
+    lstm_dm = lstm_pred[-min_len:]
+
+    dm_ax_stat, dm_ax_p = diebold_mariano_test(y_dm, arima_dm, xgb_dm, h=horizon_steps)
+
     for dataset_name, file_path in DATASETS.items():
         clean_series = load_and_clean_substation(file_path, dataset_name)
 
@@ -259,7 +269,7 @@ def diebold_mariano_test(y_true, pred1, pred2, h=1, power=2):
     gamma0 = autocovariance(d, 0)
     dm_stat = mean_d / np.sqrt(gamma0 / n)
     p_value = 2 * (1 - t.cdf(np.abs(dm_stat), df=n - 1))
-    
+
     variance_d = autocovariance(d, 0)
     for lag in range(1, h):
         gamma = autocovariance(d, lag)
