@@ -304,13 +304,8 @@ def run_lstm(full_series, train_ratio=0.7, val_ratio=0.15, seq_length=36, horizo
 
 def save_forecast_plot(y_true, y_pred, title, save_path):
     plt.figure(figsize=(12, 5))
-<<<<<<< HEAD
     plt.plot(y_true, label="Actual")
     plt.plot(y_pred, label="Predicted")
-=======
-    plt.plot(y_true[:200], label="Actual")
-    plt.plot(y_pred[:200], label="Predicted")
->>>>>>> 37f13fc5dec34dcd9284e026cac3e5f7d9175786
     plt.title(title)
     plt.xlabel("Time Step (10 mins interval)")
     plt.ylabel("Load (kW)")
